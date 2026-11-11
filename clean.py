@@ -138,3 +138,29 @@ log_df = pd.DataFrame(log)
 print()
 print(log_df.to_string(index=False))
 log_df.to_csv("docs/cleaning_log.csv", index=False)
+
+analysis = df[df["Date"].dt.year <= 2025]
+
+# One row per player per match: stack Player_1 and Player_2
+p1 = analysis[["Player_1", "Surface"]].rename(columns={"Player_1": "Player"})
+p2 = analysis[["Player_2", "Surface"]].rename(columns={"Player_2": "Player"})
+appearances = pd.concat([p1, p2])
+
+# Matches per player per surface, surfaces as columns
+counts = appearances.groupby(["Player", "Surface"]).size().unstack(fill_value=0)
+counts = counts[["Hard", "Clay", "Grass"]]
+counts["Total"] = counts.sum(axis=1)
+
+# How the cutoff changes the group size (for the README tradeoff)
+print()
+print("Players in 2015-2025:", len(counts))
+for n in [20, 30, 40]:
+    print(f" Cutoff {n}:", (counts[["Hard", "Clay", "Grass"]].min(axis=1) >= n).sum(), "players")
+
+MIN_MATCHES = 20
+selected = counts[counts[["Hard", "Clay", "Grass"]].min(axis=1) >= MIN_MATCHES]
+selected = selected.sort_values("Total", ascending=False).reset_index()
+
+print("Selected players:", len(selected))
+print(selected.head(10).to_string(index=False))
+selected.to_csv("data/clean/selected_players.csv", index=False)
