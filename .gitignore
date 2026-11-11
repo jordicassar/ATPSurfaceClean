@@ -218,5 +218,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-PLAN.md
-essay.md
+Plan.md
+Essay.md

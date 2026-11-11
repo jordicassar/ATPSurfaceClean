@@ -1,0 +1,10 @@
+step,rows_before,rows_after,values_changed
+Strip whitespace,68635,68635,395
+Merge name variants,68635,68635,604
+Filter to 2015-2026,68635,28489,0
+Replace -1 with blank,28489,28489,36
+Grand Slam Best of = 5,28489,28489,11
+Drop duplicates,28489,28489,0
+Drop invalid winners,28489,28489,0
+Flag Retired,28489,28489,4
+Flag Score_Error,28489,28489,4
