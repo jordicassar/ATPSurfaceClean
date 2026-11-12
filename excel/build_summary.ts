@@ -6,7 +6,7 @@
 // Needs a table called "Matches" holding data/clean/player_matches.csv.
 // ts-nocheck
 
-function main(workbook: ExcelScript.Workbook) {
+function main1(workbook: ExcelScript.Workbook) {
   // The 100 players from data/clean/selected_players.csv (most matches first)
   const players: string[] = [
     "Zverev A.",
