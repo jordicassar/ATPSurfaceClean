@@ -4,7 +4,7 @@
 // has no Analysis ToolPak.
 // Run in Excel for the web: Automate > New Script > paste > Run.
 // Needs a table called "Matches" holding data/clean/player_matches.csv.
-// ts-nocheck
+// @ts-nocheck
 
 function main(workbook: ExcelScript.Workbook) {
   const old = workbook.getWorksheet("Tests");
