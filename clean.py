@@ -229,3 +229,6 @@ print(pm["Split"].value_counts().to_string())
 print("Score vs Won mismatches:", mismatch.sum())
 print("Odds_Missing rows:", pm["Odds_Missing"].sum())
 
+# Export
+pm.to_csv("data/clean/player_matches.csv", index=False)
+print("Saved data/clean/player_matches.csv", len(pm), "rows")
