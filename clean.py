@@ -99,10 +99,13 @@ def check_score(score, best_of, p1_is_winner):
     needed = best_of // 2 + 1
     p1 = p2 = 0
     possible = True
-    for s in score.split():
+    sets = score.split()
+    for i, s in enumerate(sets):
         a, b = (int(x) for x in s.split("-"))
         if not set_possible(a, b):
             possible = False
+        if not set_finished(a, b) and i < len(sets) - 1:
+            possible = False     # an unfinished set before the last one
         if set_finished(a, b):
             if a > b:
                 p1 += 1
@@ -124,7 +127,7 @@ rows = len(df)
 add_log("Flag Retired", rows, df["Retired"].sum())
 add_log("Flag Score_Error", rows, df["Score_Error"].sum())
 
-# Checkpoint (2015-2025): 4 Retired + 3 Score_Error
+# Checkpoint (2015-2025): 4 Retired + 4 Score_Error
 year = df["Date"].dt.year
 in_window = year <= 2025
 print("Retired (2015-2025):    ", df.loc[in_window, "Retired"].sum())
@@ -164,3 +167,65 @@ selected = selected.sort_values("Total", ascending=False).reset_index()
 print("Selected players:", len(selected))
 print(selected.head(10).to_string(index=False))
 selected.to_csv("data/clean/selected_players.csv", index=False)
+
+# One row per player match
+def flip_score(score):
+    # "6-3 4-6" -> "3-6 6-4"
+    return " ".join("-".join(reversed(s.split("-"))) for s in score.split())
+
+shared = ["Date", "Tournament", "Series", "Court", "Surface", "Round", "Best of", "Winner", "Retired", "Score_Error"]
+
+# Player_1s point of view
+a = df[shared].copy()
+a["Player"] = df["Player_1"]
+a["Opponent"] = df["Player_2"]
+a["Rank"] = df["Rank_1"]
+a["Opp_Rank"] = df["Rank_2"]
+a["Pts"] = df["Pts_1"]
+a["Opp_Pts"] = df["Pts_2"]
+a["Odd"] = df["Odd_1"]
+a["Opp_Odd"] = df["Odd_2"]
+a["Score"] = df["Score"]
+
+# Player_2s point of view (everything swapped, score flipped)
+b = df[shared].copy()
+b["Player"] = df["Player_2"]
+b["Opponent"] = df["Player_1"]
+b["Rank"] = df["Rank_2"]
+b["Opp_Rank"] = df["Rank_1"]
+b["Pts"] = df["Pts_2"]
+b["Opp_Pts"] = df["Pts_1"]
+b["Odd"] = df["Odd_2"]
+b["Opp_Odd"] = df["Odd_1"]
+b["Score"] = df["Score"].map(flip_score)
+
+# Stack, keep the 100 selected players
+pm = pd.concat([a, b], ignore_index=True)
+pm = pm[pm["Player"].isin(selected["Player"])].copy()
+
+# New columns
+pm["Won"] = (pm["Player"] == pm["Winner"]).astype(int)
+pm["Implied_Win_Prob"] = (1 / pm["Odd"]) / (1 / pm["Odd"] + 1 / pm["Opp_Odd"])
+pm["Odds_Missing"] = (pm["Odd"].isna() | pm["Opp_Odd"].isna()).astype(int)
+pm["Split"] = (pm["Date"].dt.year <= 2025).map({True: "analysis", False: "holdout"})
+pm = pm.drop(columns="Winner").sort_values(["Player", "Date"]).reset_index(drop=True)
+
+# for every non-flagged row, the score agrees with Won
+def won_by_score(score):
+    mine = theirs = 0
+    for s in score.split():
+        x, y = (int(v) for v in s.split("-"))
+        if x > y:
+            mine += 1
+        else:
+            theirs += 1
+    return int(mine > theirs)
+
+check = pm[(pm["Retired"] == 0) & (pm["Score_Error"] == 0)]
+mismatch = check["Score"].map(won_by_score) != check["Won"]
+print()
+print("Player-match rows:", len(pm), "| players:", pm["Player"].nunique())
+print(pm["Split"].value_counts().to_string())
+print("Score vs Won mismatches:", mismatch.sum())
+print("Odds_Missing rows:", pm["Odds_Missing"].sum())
+
